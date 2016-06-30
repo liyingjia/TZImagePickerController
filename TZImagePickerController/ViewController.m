@@ -17,8 +17,8 @@
 #import "TZVideoPlayerController.h"
 
 @interface ViewController ()<TZImagePickerControllerDelegate,UICollectionViewDataSource,UICollectionViewDelegate,UIActionSheetDelegate,UIImagePickerControllerDelegate,UIAlertViewDelegate> {
-    NSMutableArray *_selectedPhotos;
-    NSMutableArray *_selectedAssets;
+//    NSMutableArray *self.selectedPhotos;
+//    NSMutableArray *self.selectedAssets;
     BOOL _isSelectOriginalPhoto;
 
     CGFloat _itemWH;
@@ -26,7 +26,7 @@
     LxGridViewFlowLayout *_layout;
 }
 @property (nonatomic, strong) UIImagePickerController *imagePickerVc;
-@property (nonatomic, strong) UICollectionView *collectionView;
+
 // 6个设置开关
 @property (weak, nonatomic) IBOutlet UISwitch *showTakePhotoBtnSwitch;  ///< 在内部显示拍照按钮
 @property (weak, nonatomic) IBOutlet UISwitch *sortAscendingSwitch;     ///< 照片排列按修改时间升序
@@ -34,9 +34,47 @@
 @property (weak, nonatomic) IBOutlet UISwitch *allowPickingImageSwitch; ///< 允许选择图片
 @property (weak, nonatomic) IBOutlet UISwitch *allowPickingOriginalPhotoSwitch; ///< 允许选择原图
 @property (weak, nonatomic) IBOutlet UISwitch *showSheetSwitch; ///< 显示一个sheet,把拍照按钮放在外面
+
+
+/// 1.选择图片的数组
+@property(nonatomic, strong)NSMutableArray *selectedPhotos ; //
+@property(nonatomic, strong)NSMutableArray *selectedAssets ; //
+
+@property(nonatomic, strong)UICollectionView *collectionView;
+
 @end
 
 @implementation ViewController
+
+#pragma mark - --- 1.lift cycle 生命周期 ---
+
+#pragma mark - --- 2.delegate 视图委托 ---
+
+#pragma mark - --- 3.event response 事件相应 ---
+
+#pragma mark - --- 4.private methods 私有方法 ---
+
+#pragma mark - --- 5.setters 属性 ---
+
+#pragma mark - --- 6.getters 属性 ---
+
+
+- (NSMutableArray *)selectedPhotos
+{
+    if (!_selectedPhotos) {
+        _selectedPhotos = @[].mutableCopy;
+    }
+    return _selectedPhotos;
+}
+
+
+- (NSMutableArray *)selectedAssets
+{
+    if (!_selectedAssets) {
+        _selectedAssets = @[].mutableCopy;
+    }
+    return _selectedAssets;
+}
 
 - (UIImagePickerController *)imagePickerVc {
     if (_imagePickerVc == nil) {
@@ -59,47 +97,53 @@
     return _imagePickerVc;
 }
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    self.view.backgroundColor = [UIColor whiteColor];
-    _selectedPhotos = [NSMutableArray array];
-    _selectedAssets = [NSMutableArray array];
-    [self configCollectionView];
+- (UICollectionView *)collectionView
+{
+    if (!_collectionView) {
+        CGFloat viewX = 0;
+        CGFloat viewY = 300;
+        CGFloat viewW = self.view.tz_width;
+        CGFloat viewH = self.view.tz_height - 300;
+        _collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(viewX, viewY, viewW, viewH) collectionViewLayout:_layout];
+        CGFloat rgb = 244 / 255.0;
+        _collectionView.alwaysBounceVertical = YES;
+        _collectionView.backgroundColor = [UIColor colorWithRed:rgb green:rgb blue:rgb alpha:1.0];
+        _collectionView.contentInset = UIEdgeInsetsMake(4, 4, 4, 4);
+        _collectionView.dataSource = self;
+        _collectionView.delegate = self;
+    }
+    return _collectionView;
 }
 
-- (void)configCollectionView {
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
     _layout = [[LxGridViewFlowLayout alloc] init];
     _margin = 4;
     _itemWH = (self.view.tz_width - 2 * _margin - 4) / 3 - _margin;
     _layout.itemSize = CGSizeMake(_itemWH, _itemWH);
     _layout.minimumInteritemSpacing = _margin;
     _layout.minimumLineSpacing = _margin;
-    _collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 300, self.view.tz_width, self.view.tz_height - 300) collectionViewLayout:_layout];
-    CGFloat rgb = 244 / 255.0;
-    _collectionView.alwaysBounceVertical = YES;
-    _collectionView.backgroundColor = [UIColor colorWithRed:rgb green:rgb blue:rgb alpha:1.0];
-    _collectionView.contentInset = UIEdgeInsetsMake(4, 4, 4, 4);
-    _collectionView.dataSource = self;
-    _collectionView.delegate = self;
-    [self.view addSubview:_collectionView];
-    [_collectionView registerClass:[TZTestCell class] forCellWithReuseIdentifier:@"TZTestCell"];
+
+    [self.view addSubview:self.collectionView];
+    [self.collectionView registerClass:[TZTestCell class] forCellWithReuseIdentifier:@"TZTestCell"];
 }
 
 #pragma mark UICollectionView
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
-    return _selectedPhotos.count + 1;
+    return self.selectedPhotos.count + 1;
 }
 
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
     TZTestCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"TZTestCell" forIndexPath:indexPath];
     cell.videoImageView.hidden = YES;
-    if (indexPath.row == _selectedPhotos.count) {
+    if (indexPath.row == self.selectedPhotos.count) {
         cell.imageView.image = [UIImage imageNamed:@"AlbumAddBtn.png"];
         cell.deleteBtn.hidden = YES;
     } else {
-        cell.imageView.image = _selectedPhotos[indexPath.row];
-        cell.asset = _selectedAssets[indexPath.row];
+        cell.imageView.image = self.selectedPhotos[indexPath.row];
+        cell.asset = self.selectedAssets[indexPath.row];
         cell.deleteBtn.hidden = NO;
     }
     cell.deleteBtn.tag = indexPath.row;
@@ -108,7 +152,7 @@
 }
 
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
-    if (indexPath.row == _selectedPhotos.count) {
+    if (indexPath.row == self.selectedPhotos.count) {
         BOOL showSheet = self.showSheetSwitch.isOn;
         if (showSheet) {
             UIActionSheet *sheet = [[UIActionSheet alloc] initWithTitle:nil delegate:self cancelButtonTitle:@"取消" destructiveButtonTitle:nil otherButtonTitles:@"拍照",@"去相册选择", nil];
@@ -117,7 +161,7 @@
             [self pushImagePickerController];
         }
     } else { // preview photos or video / 预览照片或者视频
-        id asset = _selectedAssets[indexPath.row];
+        id asset = self.selectedAssets[indexPath.row];
         BOOL isVideo = NO;
         if ([asset isKindOfClass:[PHAsset class]]) {
             PHAsset *phAsset = asset;
@@ -132,16 +176,16 @@
             vc.model = model;
             [self presentViewController:vc animated:YES completion:nil];
         } else { // preview photos / 预览照片
-            TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithSelectedAssets:_selectedAssets selectedPhotos:_selectedPhotos index:indexPath.row];
+            TZImagePickerController *imagePickerVc = [[TZImagePickerController alloc] initWithSelectedAssets:self.selectedAssets selectedPhotos:self.selectedPhotos index:indexPath.row];
             imagePickerVc.allowPickingOriginalPhoto = self.allowPickingOriginalPhotoSwitch.isOn;
             imagePickerVc.isSelectOriginalPhoto = _isSelectOriginalPhoto;
             [imagePickerVc setDidFinishPickingPhotosHandle:^(NSArray<UIImage *> *photos, NSArray *assets, BOOL isSelectOriginalPhoto) {
-                _selectedPhotos = [NSMutableArray arrayWithArray:photos];
-                _selectedAssets = [NSMutableArray arrayWithArray:assets];
+                self.selectedPhotos = [NSMutableArray arrayWithArray:photos];
+                self.selectedAssets = [NSMutableArray arrayWithArray:assets];
                 _isSelectOriginalPhoto = isSelectOriginalPhoto;
-                _layout.itemCount = _selectedPhotos.count;
+                _layout.itemCount = self.selectedPhotos.count;
                 [_collectionView reloadData];
-                _collectionView.contentSize = CGSizeMake(0, ((_selectedPhotos.count + 2) / 3 ) * (_margin + _itemWH));
+                _collectionView.contentSize = CGSizeMake(0, ((self.selectedPhotos.count + 2) / 3 ) * (_margin + _itemWH));
             }];
             [self presentViewController:imagePickerVc animated:YES completion:nil];
         }
@@ -149,11 +193,11 @@
 }
 
 - (void)collectionView:(UICollectionView *)collectionView itemAtIndexPath:(NSIndexPath *)sourceIndexPath didMoveToIndexPath:(NSIndexPath *)destinationIndexPath {
-    if (sourceIndexPath.item >= _selectedPhotos.count || destinationIndexPath.item >= _selectedPhotos.count) return;
-    UIImage *image = _selectedPhotos[sourceIndexPath.item];
+    if (sourceIndexPath.item >= self.selectedPhotos.count || destinationIndexPath.item >= self.selectedPhotos.count) return;
+    UIImage *image = self.selectedPhotos[sourceIndexPath.item];
     if (image) {
-        [_selectedPhotos exchangeObjectAtIndex:sourceIndexPath.item withObjectAtIndex:destinationIndexPath.item];
-        [_selectedAssets exchangeObjectAtIndex:sourceIndexPath.item withObjectAtIndex:destinationIndexPath.item];
+        [self.selectedPhotos exchangeObjectAtIndex:sourceIndexPath.item withObjectAtIndex:destinationIndexPath.item];
+        [self.selectedAssets exchangeObjectAtIndex:sourceIndexPath.item withObjectAtIndex:destinationIndexPath.item];
         [_collectionView reloadData];
     }
 }
@@ -167,16 +211,14 @@
     imagePickerVc.isSelectOriginalPhoto = _isSelectOriginalPhoto;
 
     // 1.如果你需要将拍照按钮放在外面，不要传这个参数
-    imagePickerVc.selectedAssets = _selectedAssets; // optional, 可选的
+    imagePickerVc.selectedAssets = self.selectedAssets; // optional, 可选的
     imagePickerVc.allowTakePicture = self.showTakePhotoBtnSwitch.isOn; // 在内部显示拍照按钮
     
-    // 2. Set the appearance
     // 2. 在这里设置imagePickerVc的外观
-    // imagePickerVc.navigationBar.barTintColor = [UIColor greenColor];
-    // imagePickerVc.oKButtonTitleColorDisabled = [UIColor lightGrayColor];
-    // imagePickerVc.oKButtonTitleColorNormal = [UIColor greenColor];
+     imagePickerVc.navigationBar.barTintColor = [UIColor greenColor];
+     imagePickerVc.oKButtonTitleColorDisabled = [UIColor lightGrayColor];
+     imagePickerVc.oKButtonTitleColorNormal = [UIColor greenColor];
     
-    // 3. Set allow picking video & photo & originalPhoto or not
     // 3. 设置是否可以选择视频/图片/原图
     imagePickerVc.allowPickingVideo = self.allowPickingVideoSwitch.isOn;
     imagePickerVc.allowPickingImage = self.allowPickingImageSwitch.isOn;
@@ -234,8 +276,8 @@
                     if (tzImagePickerVc.sortAscendingByModificationDate) {
                         assetModel = [models lastObject];
                     }
-                    [_selectedAssets addObject:assetModel.asset];
-                    [_selectedPhotos addObject:image];
+                    [self.selectedAssets addObject:assetModel.asset];
+                    [self.selectedPhotos addObject:image];
                     [_collectionView reloadData];
                 }];
             }];
@@ -274,8 +316,9 @@
 /// User click cancel button
 /// 用户点击了取消
 // - (void)imagePickerControllerDidCancel:(TZImagePickerController *)picker {
-    // NSLog(@"cancel");
+//     NSLog(@"cancel");
 // }
+
 
 // The picker should dismiss itself; when it dismissed these handle will be called.
 // If isOriginalPhoto is YES, user picked the original photo.
@@ -286,12 +329,12 @@
 // 你可以通过一个asset获得原图，通过这个方法：[[TZImageManager manager] getOriginalPhotoWithAsset:completion:]
 // photos数组里的UIImage对象，默认是828像素宽，你可以通过设置photoWidth属性的值来改变它
 - (void)imagePickerController:(TZImagePickerController *)picker didFinishPickingPhotos:(NSArray *)photos sourceAssets:(NSArray *)assets isSelectOriginalPhoto:(BOOL)isSelectOriginalPhoto {
-    _selectedPhotos = [NSMutableArray arrayWithArray:photos];
-    _selectedAssets = [NSMutableArray arrayWithArray:assets];
+    self.selectedPhotos = [NSMutableArray arrayWithArray:photos];
+    self.selectedAssets = [NSMutableArray arrayWithArray:assets];
     _isSelectOriginalPhoto = isSelectOriginalPhoto;
-    _layout.itemCount = _selectedPhotos.count;
+    _layout.itemCount = self.selectedPhotos.count;
     [_collectionView reloadData];
-    // _collectionView.contentSize = CGSizeMake(0, ((_selectedPhotos.count + 2) / 3 ) * (_margin + _itemWH));
+    // _collectionView.contentSize = CGSizeMake(0, ((self.selectedPhotos.count + 2) / 3 ) * (_margin + _itemWH));
 }
 
 // If user picking a video, this callback will be called.
@@ -299,9 +342,9 @@
 // 如果用户选择了一个视频，下面的handle会被执行
 // 如果系统版本大于iOS8，asset是PHAsset类的对象，否则是ALAsset类的对象
 - (void)imagePickerController:(TZImagePickerController *)picker didFinishPickingVideo:(UIImage *)coverImage sourceAssets:(id)asset {
-    _selectedPhotos = [NSMutableArray arrayWithArray:@[coverImage]];
-    _selectedAssets = [NSMutableArray arrayWithArray:@[asset]];
-    _layout.itemCount = _selectedPhotos.count;
+    self.selectedPhotos = [NSMutableArray arrayWithArray:@[coverImage]];
+    self.selectedAssets = [NSMutableArray arrayWithArray:@[asset]];
+    _layout.itemCount = self.selectedPhotos.count;
     // open this code to send video / 打开这段代码发送视频
     // [[TZImageManager manager] getVideoOutputPathWithAsset:asset completion:^(NSString *outputPath) {
         // NSLog(@"视频导出到本地完成,沙盒路径为:%@",outputPath);
@@ -310,16 +353,16 @@
         
     // }];
     [_collectionView reloadData];
-   // _collectionView.contentSize = CGSizeMake(0, ((_selectedPhotos.count + 2) / 3 ) * (_margin + _itemWH));
+   // _collectionView.contentSize = CGSizeMake(0, ((self.selectedPhotos.count + 2) / 3 ) * (_margin + _itemWH));
 }
 
 
 #pragma mark Click Event
 
 - (void)deleteBtnClik:(UIButton *)sender {
-    [_selectedPhotos removeObjectAtIndex:sender.tag];
-    [_selectedAssets removeObjectAtIndex:sender.tag];
-    _layout.itemCount = _selectedPhotos.count;
+    [self.selectedPhotos removeObjectAtIndex:sender.tag];
+    [self.selectedAssets removeObjectAtIndex:sender.tag];
+    _layout.itemCount = self.selectedPhotos.count;
     
     [_collectionView performBatchUpdates:^{
         NSIndexPath *indexPath = [NSIndexPath indexPathForItem:sender.tag inSection:0];
